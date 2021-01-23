@@ -9,11 +9,13 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const ClientId = "693851654174-2rpkkd7gp95brtf90cofsg4mcj4mkaiq.apps.googleusercontent.com"
 const ClientSecret = "0tKreN72PjKDuZmMM7E3UdX5"
-const RedirectUri = "http://localhost/auth/google/callback"
+const RedirectUri = "http://143.110.157.194.xip.io/auth/google/callback"
 const ResponseType = "code"
 const SCOPE = "profile https://www.googleapis.com/auth/user.addresses.read https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/user.phonenumbers.read"
 
@@ -26,6 +28,20 @@ func googleLogin(w http.ResponseWriter, r *http.Request) {
 		SCOPE,
 	),
 		http.StatusFound)
+}
+
+func dbConn() (db *sql.DB) {
+	dbDriver := "mysql"
+	dbUser := "root"
+	dbPass := "$@#12345678"
+	dbName := "gogoauth"
+	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return db
+
 }
 
 func googleCallback(w http.ResponseWriter, r *http.Request) {
@@ -114,35 +130,62 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 		PhoneNumbers []PhoneNumbers `json:"phoneNumbers"`
 	}
 
-	var user UserInfo
-	err = json.NewDecoder(resp.Body).Decode(&user)
+	type User struct {
+		Name string
+		Email string
+		Address string
+		PhoneNumber string
+	}
+
+	var userInfo UserInfo
+	err = json.NewDecoder(resp.Body).Decode(&userInfo)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	var user User
+	user.Name = userInfo.Name[0].DisplayName
+	user.Email = userInfo.Email[0].Value
+	if userInfo.Addresses != nil {
+		user.Address = userInfo.Addresses[0].StreetAddress
+	} else {
+		user.Address = ""
+	}
+	if userInfo.PhoneNumbers != nil {
+		user.PhoneNumber = userInfo.PhoneNumbers[0].Value
+	} else {
+		user.PhoneNumber = ""
+	}
+
+
 	log.Printf("%s", user)
-	log.Printf("name: %s", user.Name[0].DisplayName)
-	log.Printf("email: %s", user.Email[0].Value)
-	if user.Addresses != nil {
-		log.Printf("address: %s", user.Addresses[0].StreetAddress)
-	} else {
-		log.Printf("address is empty")
-	}
-	if user.PhoneNumbers != nil {
-		log.Printf("phoneNumber: %s", user.PhoneNumbers[0].Value)
-	} else {
-		log.Printf("phoneNumber is empty")
-	}
+	log.Printf("name: %s", user.Name)
+	log.Printf("email: %s", user.Email)
+	log.Printf("address: %s", user.Address)
+	log.Printf("phoneNumber: %s", user.PhoneNumber)
 
 	// set cookie
 	expiration := time.Now().Add(365 * 24 * time.Hour)
 	cookie := &http.Cookie{
 		Name:    "email",
-		Value:   user.Email[0].Value,
+		Value:   user.Email,
 		Path:    "/",
 		Expires: expiration,
 	}
 
 	http.SetCookie(w, cookie)
+
+
+	// save to db
+	db := dbConn()
+	defer db.Close()
+	query, err := db.Prepare("INSERT INTO user(email, fullname, address, phonenumber) VALUES (?,?,?,?)")
+	if err != nil {
+		log.Fatal(err)
+	}
+	query.Exec(user.Email, user.Name, user.Address, user.PhoneNumber)
+
+	log.Printf("inserting data...")
 
 	_, err = w.Write([]byte(cookie.Value))
 	if err != nil {
