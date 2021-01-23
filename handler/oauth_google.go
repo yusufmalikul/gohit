@@ -15,7 +15,7 @@ const ClientId = "693851654174-2rpkkd7gp95brtf90cofsg4mcj4mkaiq.apps.googleuserc
 const ClientSecret = "0tKreN72PjKDuZmMM7E3UdX5"
 const RedirectUri = "http://localhost/auth/google/callback"
 const ResponseType = "code"
-const SCOPE = "email profile"
+const SCOPE = "profile https://www.googleapis.com/auth/user.addresses.read https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/user.phonenumbers.read"
 
 func googleLogin(w http.ResponseWriter, r *http.Request) {
 
@@ -76,7 +76,7 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 	//full name, address, telephone, and email
 
 	log.Printf("getting userinfo")
-	profileUrl := "https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses"
+	profileUrl := "https://people.googleapis.com/v1/people/me?personFields=names,emailAddresses,addresses,phoneNumbers"
 	req, err = http.NewRequest("GET", profileUrl, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -99,9 +99,19 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 		Value string `json:"value"`
 	}
 
+	type Addresses struct {
+		StreetAddress string `json:"streetAddress"`
+	}
+
+	type PhoneNumbers struct {
+		Value string `json:"value"`
+	}
+
 	type UserInfo struct {
-		Name  []Name  `json:"names"`
-		Email []Email `json:"emailAddresses"`
+		Name         []Name         `json:"names"`
+		Email        []Email        `json:"emailAddresses"`
+		Addresses    []Addresses    `json:"addresses"`
+		PhoneNumbers []PhoneNumbers `json:"phoneNumbers"`
 	}
 
 	var user UserInfo
@@ -112,6 +122,16 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 	log.Printf("%s", user)
 	log.Printf("name: %s", user.Name[0].DisplayName)
 	log.Printf("email: %s", user.Email[0].Value)
+	if user.Addresses != nil {
+		log.Printf("address: %s", user.Addresses[0].StreetAddress)
+	} else {
+		log.Printf("address is empty")
+	}
+	if user.PhoneNumbers != nil {
+		log.Printf("phoneNumber: %s", user.PhoneNumbers[0].Value)
+	} else {
+		log.Printf("phoneNumber is empty")
+	}
 
 	// set cookie
 	expiration := time.Now().Add(365 * 24 * time.Hour)
