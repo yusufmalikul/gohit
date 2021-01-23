@@ -1,22 +1,21 @@
 package main
 
 import (
-	"./handler"
-	"fmt"
+	"os"
 	"log"
-	"net/http"
 )
 
 func main() {
+	app := App{}
+	app.Init(
+		os.Getenv("APP_DBUSER"),
+		os.Getenv("APP_DBPASS"),
+		os.Getenv("APP_DBNAME"),
+		os.Getenv("APP_DBHOST"))
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	server := &http.Server{
-		Addr: fmt.Sprintf(":80"),
-		Handler: handler.New(),
-	}
-	log.Printf("Starting HTTP Server. Listening at %v", server.Addr)
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatal(err)
-	}
+	log.Println("Listening on :80...")
+	app.Run(":80")
+
 }
 
 

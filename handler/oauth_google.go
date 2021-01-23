@@ -15,7 +15,7 @@ import (
 
 const ClientId = "693851654174-2rpkkd7gp95brtf90cofsg4mcj4mkaiq.apps.googleusercontent.com"
 const ClientSecret = "0tKreN72PjKDuZmMM7E3UdX5"
-const RedirectUri = "http://143.110.157.194.xip.io/auth/google/callback"
+const RedirectUri = "http://localhost/auth/google/callback"
 const ResponseType = "code"
 const SCOPE = "profile https://www.googleapis.com/auth/user.addresses.read https://www.googleapis.com/auth/user.emails.read https://www.googleapis.com/auth/user.phonenumbers.read"
 
@@ -30,12 +30,12 @@ func googleLogin(w http.ResponseWriter, r *http.Request) {
 		http.StatusFound)
 }
 
-func dbConn() (db *sql.DB) {
+func DbConn() (db *sql.DB) {
 	dbDriver := "mysql"
 	dbUser := "root"
-	dbPass := "$@#12345678"
+	dbPass := "@$#12345678"
 	dbName := "gogoauth"
-	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
+	db, err := sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp(143.110.157.194.xip.io:3306)/"+dbName)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func googleCallback(w http.ResponseWriter, r *http.Request) {
 
 
 	// save to db
-	db := dbConn()
+	db := DbConn()
 	defer db.Close()
 	query, err := db.Prepare("INSERT INTO user(email, fullname, address, phonenumber) VALUES (?,?,?,?)")
 	if err != nil {
