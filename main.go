@@ -1,8 +1,8 @@
 package main
 
 import (
-	"os"
 	"log"
+	"os"
 )
 
 func main() {
@@ -17,5 +17,3 @@ func main() {
 	app.Run(":80")
 
 }
-
-

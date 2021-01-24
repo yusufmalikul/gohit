@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gogoauth - Reset Password</title>
+</head>
+<body>
+	<h1>Reset Password</h1>
+	<h2>Please enter your new password.</h2>
+<form method="POST">
+	<input type="hidden" name="token" value="{{.Token}}">
+	<table border="0">
+		<tr><td>Password</td><td>:<input type="password" name="password"></td></tr>
+	</table>
+	<input type="submit" value="Reset">
+</form>
+</body>
+</html>
